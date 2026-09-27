@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NutriKids Clínica</title>
+<meta name="theme-color" content="#155e75">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NutriKids">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #f3f7f8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  #app-frame {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+  /* ===== Tela de carregamento (evita ver a tela branca antes do iframe carregar) ===== */
+  #loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #f3f7f8;
+    z-index: 10;
+    transition: opacity .3s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  #loading img { width: 88px; height: 88px; border-radius: 20px; }
+  #loading .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid #cbd8db;
+    border-top-color: #155e75;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading p { color: #155e75; font-weight: 600; margin: 0; }
+
+  /* ===== Botão flutuante de instalação ===== */
+  #install-pwa {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    background: #155e75;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  #install-pwa.visible { display: inline-flex; }
+  #install-pwa:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <img src="icons/icon-192.png" alt="NutriKids">
+  <div class="spinner"></div>
+  <p>Carregando NutriKids…</p>
+</div>
+
+<!-- ⬇️ Substitua a URL abaixo caso o deployment do Apps Script mude -->
+<iframe
+  id="app-frame"
+  src="https://script.google.com/macros/s/AKfycbzMjLndxmkRx3Kki4xnrqVszgqyAfExjfsVnTApnznfV09QrwEtkqMaOFMNf-aDvTZ2/exec"
+  title="NutriKids Clínica"
+  allow="microphone; camera"
+></iframe>
+
+<button id="install-pwa">📲 Instalar app</button>
+
+<script>
+  const frame = document.getElementById('app-frame');
+  const loading = document.getElementById('loading');
+  frame.addEventListener('load', () => {
+    loading.classList.add('hidden');
+    setTimeout(() => { loading.style.display = 'none'; }, 350);
+  });
+
+  /* ===== Registro do Service Worker do SHELL (mesmo origin: GitHub Pages) ===== */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('✅ NutriKids Shell: Service Worker registrado.', reg.scope))
+        .catch((err) => console.warn('⚠️ NutriKids Shell: falha ao registrar Service Worker:', err));
+    });
+  }
+
+  /* ===== Instalação como app (PWA) ===== */
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('install-pwa');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.classList.add('visible');
+  });
+
+  installBtn.addEventListener('click', () => {
+    if (!deferredPrompt) {
+      alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial" ou "Instalar aplicativo".');
+      return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+    installBtn.classList.remove('visible');
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBtn.classList.remove('visible');
+  });
+</script>
+</body>
+</html>
